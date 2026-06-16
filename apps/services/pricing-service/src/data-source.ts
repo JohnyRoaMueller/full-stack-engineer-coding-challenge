@@ -2,6 +2,10 @@ import 'reflect-metadata';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { Craftsman } from './app/craftsmen/entities/craftsman.entity';
 import { CraftsmanTradeAssignment } from './app/craftsmen/entities/craftsman-trade-assignment.entity';
+import { CatalogDiscount } from './app/pricing-catalogs/entities/catalog-discount.entity';
+import { CatalogPosition } from './app/pricing-catalogs/entities/catalog-position.entity';
+import { PositionSurcharge } from './app/pricing-catalogs/entities/position-surcharge.entity';
+import { PricingCatalogVersion } from './app/pricing-catalogs/entities/pricing-catalog-version.entity';
 import { TradeConfig } from './app/trades/entities/trade-config.entity';
 
 export const dataSourceOptions: DataSourceOptions = {
@@ -12,7 +16,15 @@ export const dataSourceOptions: DataSourceOptions = {
   password: process.env.DATABASE_PASSWORD ?? 'postgres',
   database: process.env.DATABASE_NAME ?? 'pricing',
   schema: process.env.DATABASE_SCHEMA ?? 'pricing_service',
-  entities: [Craftsman, CraftsmanTradeAssignment, TradeConfig],
+  entities: [
+    Craftsman,
+    CraftsmanTradeAssignment,
+    TradeConfig,
+    PricingCatalogVersion,
+    CatalogPosition,
+    PositionSurcharge,
+    CatalogDiscount,
+  ],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   migrationsRun: false,
   synchronize: false,
