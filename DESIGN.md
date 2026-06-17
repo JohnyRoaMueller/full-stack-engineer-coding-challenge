@@ -1,6 +1,6 @@
 # DESIGN.md — Pricing Catalog Service
 
-> **Status:** First draft (pre-implementation)
+> **Status:** Final
 
 ---
 
@@ -168,24 +168,69 @@ Concurrent publish attempts on the same `(craftsmanId, trade)` serialize on the 
 
 ---
 
-## 6. Scaling Toward the Pricing Engine 
+## 6. Scaling Toward the Pricing Engine
 
-*Placeholder — fill in during final pass.*
+The versioned catalog model and deterministic quote calculator are the foundation for the full pricing engine and offer generator. Internal planners will select positions and quantities; the engine returns the same breakdown contract the partner portal already consumes — PDF export and customer comparison tables become presentation layers on top. Per-trade `pricingSchema` in `TradeConfig.metadata` scales attribute variability without per-trade migrations. Publish intervals with `effectiveFrom` / `effectiveUntil` preserve audit history and enable time-bounded replay once time-travel quoting is added.
 
----
-
-## 7. Scope Cuts 
-
-*Placeholder — fill in during final pass.*
+**Natural next steps:** admin schema editor UI, partner UI for surcharges/discounts and quantity bounds, catalog version history view, then offer assembly and document export.
 
 ---
 
-## 8. AI Usage 
+## 7. Scope Cuts
 
-*Placeholder — fill in during final pass (policy §2).*
+Prioritized backend correctness and the partner-portal end-to-end loop over breadth. Skipped with intent:
+
+| Cut | Rationale |
+|-----|-----------|
+| **Admin-portal schema editor** (§3.3) | Backend `PATCH /trades/:trade` with `409` conflict response is done; structured editor UI deferred to protect partner-portal quality. |
+| **All §3.4 optional items** (idempotency, Terraform/ECS, time-travel quote) | No penalty for skipping; time spent on calculator tests and publish concurrency instead. |
+| **Partner UI for surcharges, discounts, min/max quantity** | Backend and quote flow support them; UI covers positions + schema-driven attributes only. Existing surcharges/discounts on seeded or copied drafts are preserved on save. |
+| **Catalog version history view** | Explicitly out of scope per challenge brief; published versions remain readable via API. |
 
 ---
 
-## 9. Runbook 
+## 8. AI Usage
 
-*Placeholder — fill in during final pass.*
+**Tool:** Cursor (architecture sparring + code generation).
+
+**Where AI was used:** Architecture decisions (data model, money representation, rounding, publish locking, schema-conflict policy) were discussed iteratively with Cursor before implementation. Given the 12-hour scope, essentially all implementation code was AI-generated — backend (entities, migrations, services, calculator, validator, tests) and frontend (partner-portal catalog page, forms, i18n).
+
+**Where human judgment dominated:** Final architecture choices and trade-offs (e.g. `409` over `SCHEMA_DRIFTED`, exclusion constraint over advisory locks, fractional-cents-until-VAT rounding) were mine after sparring. The backend was reviewed line-by-line before every commit; smaller cosmetic refactors were skipped to stay pragmatic.
+
+**Validation:**
+
+- **Unit tests** across pricing-service (calculator invariants, validator failure modes, endpoint happy/error paths, concurrent publish) and partner-portal data-mapping tests.
+- **Manual curl tests** against a running stack after each backend chunk — primary integration check alongside unit tests.
+- **Database inspection** (published intervals, draft immutability, constraint behaviour) before committing backend changes.
+- Frontend: less line-by-line review ("vibe-coded"); validated via browser smoke tests and the mapping unit tests.
+
+---
+
+## 9. Runbook
+
+Full detail in `README.md`. Short version:
+
+```bash
+# Stack (migrations + seed run automatically in containers)
+docker compose up --build
+# → auth :3001, pricing :3000, partner :4200, admin :4201
+
+# Host dev (faster hot-reload): Postgres in Docker, services on host
+docker compose up -d postgres
+yarn install && nvm use
+yarn nx run auth-service:migration:run && yarn nx run pricing-service:migration:run
+yarn nx run auth-service:seed && yarn nx run pricing-service:seed
+yarn nx serve auth-service    # :3001
+yarn nx serve pricing-service # :3000
+yarn nx serve partner-portal  # :4200
+
+# Tests
+yarn nx test pricing-service
+yarn nx test partner-portal
+
+# Reset DB
+docker compose down -v && docker compose up -d postgres
+# then re-run migrations + seed (see README §6)
+```
+
+**Smoke login:** `partner@example.com` / `partner123` (partner-portal), `admin@example.com` / `admin123` (admin-portal). Swagger: `http://localhost:3000/api/docs`.
