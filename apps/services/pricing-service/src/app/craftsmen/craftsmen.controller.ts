@@ -26,6 +26,8 @@ import { CreateCraftsmanDto } from './dto/create-craftsman.dto';
 import { UpdateCraftsmanDto } from './dto/update-craftsman.dto';
 import { QueryCraftsmenDto } from './dto/query-craftsmen.dto';
 import { CraftsmanResponseDto } from './dto/craftsman-response.dto';
+import { QuoteRequestDto } from '../pricing-catalogs/dto/quote-request.dto';
+import { QuoteResponseDto } from '../pricing-catalogs/dto/quote-response.dto';
 
 @ApiTags('Craftsmen')
 @ApiBearerAuth()
@@ -56,6 +58,23 @@ export class CraftsmenController {
     @CurrentUser() user: JwtPayload,
   ): Promise<CraftsmanResponseDto> {
     return this.service.findOne(id, user);
+  }
+
+  @Post(':id/trades/:trade/quote')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN, UserRole.CRAFTSMAN)
+  @ApiOperation({ summary: 'Quote against the active published catalog for a craftsman and trade' })
+  @ApiResponse({ status: 200, type: QuoteResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid quote input or inactive craftsman' })
+  @ApiResponse({ status: 403, description: 'Caller may not access this craftsman' })
+  @ApiResponse({ status: 404, description: 'No active published catalog or trade not found' })
+  quoteActiveCatalog(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('trade') trade: string,
+    @Body() dto: QuoteRequestDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<QuoteResponseDto> {
+    return this.service.quoteActiveCatalog(id, trade, dto, user);
   }
 
   @Post()

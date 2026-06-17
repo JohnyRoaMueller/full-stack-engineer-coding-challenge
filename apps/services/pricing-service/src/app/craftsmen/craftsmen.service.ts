@@ -11,6 +11,9 @@ import { JwtPayload, PaginatedResponse, UserRole } from '@sandbox/types';
 
 import { Craftsman } from './entities/craftsman.entity';
 import { CraftsmanTradeAssignment } from './entities/craftsman-trade-assignment.entity';
+import { QuoteRequestDto } from '../pricing-catalogs/dto/quote-request.dto';
+import { QuoteResponseDto } from '../pricing-catalogs/dto/quote-response.dto';
+import { PricingCatalogsService } from '../pricing-catalogs/pricing-catalogs.service';
 import { CreateCraftsmanDto } from './dto/create-craftsman.dto';
 import { UpdateCraftsmanDto } from './dto/update-craftsman.dto';
 import { QueryCraftsmenDto } from './dto/query-craftsmen.dto';
@@ -25,6 +28,7 @@ export class CraftsmenService {
     @InjectRepository(CraftsmanTradeAssignment)
     private readonly assignments: Repository<CraftsmanTradeAssignment>,
     private readonly dataSource: DataSource,
+    private readonly pricingCatalogs: PricingCatalogsService,
   ) {}
 
   async list(
@@ -164,6 +168,15 @@ export class CraftsmenService {
       throw new NotFoundException(`Craftsman ${id} not found`);
     }
     this.logger.log(`Deleted craftsman ${id}`);
+  }
+
+  async quoteActiveCatalog(
+    craftsmanId: string,
+    trade: string,
+    dto: QuoteRequestDto,
+    user: JwtPayload,
+  ): Promise<QuoteResponseDto> {
+    return this.pricingCatalogs.quoteActiveForCraftsmanTrade(craftsmanId, trade, dto, user);
   }
 
   // ---------------------------------------------------------------------

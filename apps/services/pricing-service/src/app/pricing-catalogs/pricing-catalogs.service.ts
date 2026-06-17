@@ -336,6 +336,44 @@ export class PricingCatalogsService {
     }
   }
 
+  async quoteActiveForCraftsmanTrade(
+    craftsmanId: string,
+    trade: string,
+    dto: QuoteRequestDto,
+    user: JwtPayload,
+  ): Promise<QuoteResponseDto> {
+    this.assertCanAccessCatalog(craftsmanId, user);
+    await this.assertTradeExists(trade);
+
+    const versionId = await this.findActivePublishedVersionId(craftsmanId, trade);
+    return this.quote(versionId, dto, user);
+  }
+
+  private async findActivePublishedVersionId(
+    craftsmanId: string,
+    trade: string,
+    at: Date = new Date(),
+  ): Promise<string> {
+    const version = await this.versions
+      .createQueryBuilder('version')
+      .where('version.craftsman_id = :craftsmanId', { craftsmanId })
+      .andWhere('version.trade = :trade', { trade })
+      .andWhere('version.status = :status', { status: CatalogVersionStatus.PUBLISHED })
+      .andWhere('version.effective_from IS NOT NULL')
+      .andWhere('version.effective_from <= :at', { at })
+      .andWhere('(version.effective_until IS NULL OR version.effective_until > :at)')
+      .orderBy('version.effective_from', 'DESC')
+      .getOne();
+
+    if (!version) {
+      throw new NotFoundException(
+        `No active published pricing catalog for craftsman ${craftsmanId} and trade ${trade}`,
+      );
+    }
+
+    return version.id;
+  }
+
   private async loadVersionOrThrow(versionId: string): Promise<PricingCatalogVersion> {
     const version = await this.versions.findOne({
       where: { id: versionId },

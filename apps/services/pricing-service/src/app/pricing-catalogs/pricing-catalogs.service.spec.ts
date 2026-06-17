@@ -172,7 +172,9 @@ function buildPublishTransactionMock(
 
 describe('PricingCatalogsService', () => {
   let service: PricingCatalogsService;
-  let versions: jest.Mocked<Pick<Repository<PricingCatalogVersion>, 'find' | 'findOne' | 'save' | 'create'>>;
+  let versions: jest.Mocked<
+    Pick<Repository<PricingCatalogVersion>, 'find' | 'findOne' | 'save' | 'create' | 'createQueryBuilder'>
+  >;
   let craftsmen: jest.Mocked<Pick<Repository<Craftsman>, 'findOne'>>;
   let trades: jest.Mocked<Pick<Repository<TradeConfig>, 'findOne'>>;
   let dataSourceMock: { transaction: jest.Mock };
@@ -183,6 +185,7 @@ describe('PricingCatalogsService', () => {
       findOne: jest.fn(),
       save: jest.fn(),
       create: jest.fn().mockImplementation((x: PricingCatalogVersion) => x),
+      createQueryBuilder: jest.fn(),
     };
     craftsmen = {
       findOne: jest.fn().mockResolvedValue({
@@ -272,6 +275,90 @@ describe('PricingCatalogsService', () => {
         adminUser,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  describe('quoteActiveForCraftsmanTrade', () => {
+    let activeVersionQb: {
+      where: jest.Mock;
+      andWhere: jest.Mock;
+      orderBy: jest.Mock;
+      getOne: jest.Mock;
+    };
+
+    beforeEach(() => {
+      activeVersionQb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn(),
+      };
+      versions.createQueryBuilder.mockReturnValue(activeVersionQb as never);
+    });
+
+    it('quotes against active published version for admin', async () => {
+      activeVersionQb.getOne.mockResolvedValue({ id: VERSION_ID });
+      versions.findOne.mockResolvedValue(
+        buildVersion({
+          status: CatalogVersionStatus.PUBLISHED,
+          effectiveFrom: EFFECTIVE_FROM,
+        }),
+      );
+
+      const result = await service.quoteActiveForCraftsmanTrade(
+        CRAFTSMAN_ID,
+        'HVAC',
+        { lines: [{ positionKey: 'boiler-install', quantity: 2 }] },
+        adminUser,
+      );
+
+      expect(result.totals.net).toBe(20000);
+      expect(versions.createQueryBuilder).toHaveBeenCalledWith('version');
+    });
+
+    it('rejects when no active published version exists', async () => {
+      activeVersionQb.getOne.mockResolvedValue(null);
+
+      await expect(
+        service.quoteActiveForCraftsmanTrade(
+          CRAFTSMAN_ID,
+          'HVAC',
+          { lines: [{ positionKey: 'boiler-install', quantity: 1 }] },
+          adminUser,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rejects catalog access for another craftsman', async () => {
+      await expect(
+        service.quoteActiveForCraftsmanTrade(
+          CRAFTSMAN_ID,
+          'HVAC',
+          { lines: [{ positionKey: 'boiler-install', quantity: 1 }] },
+          otherCraftsmanUser,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(activeVersionQb.getOne).not.toHaveBeenCalled();
+    });
+
+    it('rejects quote when craftsman is inactive', async () => {
+      activeVersionQb.getOne.mockResolvedValue({ id: VERSION_ID });
+      versions.findOne.mockResolvedValue(
+        buildVersion({
+          status: CatalogVersionStatus.PUBLISHED,
+          effectiveFrom: EFFECTIVE_FROM,
+        }),
+      );
+      craftsmen.findOne.mockResolvedValue({ id: CRAFTSMAN_ID, isActive: false } as Craftsman);
+
+      await expect(
+        service.quoteActiveForCraftsmanTrade(
+          CRAFTSMAN_ID,
+          'HVAC',
+          { lines: [{ positionKey: 'boiler-install', quantity: 1 }] },
+          adminUser,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 
   it('updates draft positions and validates attributes against schema', async () => {
