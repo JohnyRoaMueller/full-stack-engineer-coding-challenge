@@ -3,6 +3,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { AppLayout } from './components/AppLayout';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
+import { PricingCatalogPage } from './pages/PricingCatalogPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { theme } from './theme/theme';
 
@@ -39,6 +40,16 @@ export function App(): JSX.Element {
                 <RequireAuth>
                   <AppLayout>
                     <ProfilePage />
+                  </AppLayout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/pricing-catalog"
+              element={
+                <RequireAuth>
+                  <AppLayout>
+                    <PricingCatalogPage />
                   </AppLayout>
                 </RequireAuth>
               }

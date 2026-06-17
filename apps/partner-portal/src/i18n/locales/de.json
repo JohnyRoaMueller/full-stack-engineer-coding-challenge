@@ -54,6 +54,12 @@
       "loadFailed": "Profil konnte nicht geladen werden."
     }
   },
+  "pricingCatalog": {
+    "heading": "Mein Preiskatalog",
+    "subheading": "Verwalte Deine Preispositionen pro Trade-Kategorie.",
+    "empty": "Es ist kein Craftsman mit diesem Konto verknüpft.",
+    "placeholder": "Katalog-Inhalt folgt in den nächsten Schritten."
+  },
   "validation": {
     "required": "Pflichtfeld",
     "email": "Ungültige E-Mail",

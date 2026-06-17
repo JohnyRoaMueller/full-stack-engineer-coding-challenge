@@ -54,6 +54,12 @@
       "loadFailed": "Could not load profile."
     }
   },
+  "pricingCatalog": {
+    "heading": "My Pricing Catalog",
+    "subheading": "Manage your price positions per trade category.",
+    "empty": "No craftsman is linked to this account.",
+    "placeholder": "Catalog content will be added in the next steps."
+  },
   "validation": {
     "required": "Required",
     "email": "Invalid email",
