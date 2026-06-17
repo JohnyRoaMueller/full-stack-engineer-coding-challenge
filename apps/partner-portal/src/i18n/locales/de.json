@@ -64,11 +64,21 @@
       "loadFailed": "Katalogdaten konnten nicht geladen werden."
     },
     "tab": {
-      "loadFailed": "Katalogversionen für diesen Trade konnten nicht geladen werden.",
-      "draftExists": "Es gibt einen Entwurf für diesen Trade.",
-      "noDraft": "Kein Entwurf vorhanden.",
-      "publishedCount": "{{count}} veröffentlichte Version(en).",
-      "placeholder": "Positionen und weitere Aktionen folgen in den nächsten Schritten."
+      "loadFailed": "Katalogversionen für diesen Trade konnten nicht geladen werden."
+    },
+    "draft": {
+      "status": "Entwurf",
+      "startFromActive": "Entwurf aus aktiver Version",
+      "startEmpty": "Leeren Entwurf starten",
+      "starting": "Entwurf wird erstellt …",
+      "created": "Entwurf erstellt.",
+      "createFailed": "Entwurf konnte nicht erstellt werden.",
+      "loadFailed": "Entwurf konnte nicht geladen werden.",
+      "fromActiveHint": "Es gibt eine aktive veröffentlichte Version. Du kannst einen neuen Entwurf daraus erstellen.",
+      "emptyHint": "Es gibt noch keine veröffentlichte Version. Starte einen leeren Entwurf.",
+      "positionCount": "{{count}} Position(en)",
+      "noPositions": "Noch keine Positionen.",
+      "tablePlaceholder": "Die bearbeitbare Positionstabelle folgt im nächsten Schritt."
     }
   },
   "validation": {

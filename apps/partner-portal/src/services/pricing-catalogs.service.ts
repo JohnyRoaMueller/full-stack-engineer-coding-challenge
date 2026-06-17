@@ -1,4 +1,5 @@
 import { TradeCode } from '@sandbox/types';
+import { toDiscountInput, toPositionInput } from '../utils/pricing-catalog.utils';
 import { apiClient } from './api.service';
 
 export type CatalogVersionStatus = 'DRAFT' | 'PUBLISHED';
@@ -203,4 +204,29 @@ export function quoteCatalogVersion(
   return apiClient
     .post<QuoteResponse>(`/pricing-catalogs/${versionId}/quote`, request)
     .then((r) => r.data);
+}
+
+export function createEmptyDraft(
+  craftsmanId: string,
+  trade: TradeCode,
+): Promise<PricingCatalogVersionResponse> {
+  return createCatalogVersion({ craftsmanId, trade });
+}
+
+export async function createDraftClonedFromVersion(
+  craftsmanId: string,
+  trade: TradeCode,
+  sourceVersionId: string,
+): Promise<PricingCatalogVersionResponse> {
+  const draft = await createCatalogVersion({ craftsmanId, trade });
+  const source = await getCatalogVersion(sourceVersionId);
+
+  if (source.positions.length === 0 && source.discounts.length === 0) {
+    return draft;
+  }
+
+  return updateCatalogVersion(draft.id, {
+    positions: source.positions.map(toPositionInput),
+    discounts: source.discounts.map(toDiscountInput),
+  });
 }

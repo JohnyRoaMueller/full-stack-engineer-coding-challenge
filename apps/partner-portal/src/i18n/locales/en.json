@@ -64,11 +64,21 @@
       "loadFailed": "Could not load catalog data."
     },
     "tab": {
-      "loadFailed": "Could not load catalog versions for this trade.",
-      "draftExists": "A draft exists for this trade.",
-      "noDraft": "No draft available.",
-      "publishedCount": "{{count}} published version(s).",
-      "placeholder": "Positions and further actions will be added in the next steps."
+      "loadFailed": "Could not load catalog versions for this trade."
+    },
+    "draft": {
+      "status": "Draft",
+      "startFromActive": "Start draft from active version",
+      "startEmpty": "Start empty draft",
+      "starting": "Creating draft…",
+      "created": "Draft created.",
+      "createFailed": "Could not create draft.",
+      "loadFailed": "Could not load draft.",
+      "fromActiveHint": "An active published version exists. You can create a new draft from it.",
+      "emptyHint": "No published version exists yet. Start with an empty draft.",
+      "positionCount": "{{count}} position(s)",
+      "noPositions": "No positions yet.",
+      "tablePlaceholder": "The editable positions table will be added in the next step."
     }
   },
   "validation": {

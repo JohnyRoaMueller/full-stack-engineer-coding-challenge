@@ -1,12 +1,18 @@
-import { Alert, Box, Paper, Skeleton, Stack, Typography } from '@mui/material';
+import { Alert, Box, Skeleton, Stack } from '@mui/material';
 import { TradeCode } from '@sandbox/types';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  findActivePublishedVersion,
+  findDraftVersion,
+} from '../utils/pricing-catalog.utils';
 import { ApiError } from '../services/api.service';
 import {
   listCatalogVersions,
   PricingCatalogVersionListItem,
 } from '../services/pricing-catalogs.service';
+import { CatalogDraftPanel } from './CatalogDraftPanel';
+import { CatalogDraftStartPanel } from './CatalogDraftStartPanel';
 
 interface TradeCatalogTabPanelProps {
   craftsmanId: string;
@@ -21,6 +27,11 @@ export function TradeCatalogTabPanel({
   const [versions, setVersions] = useState<PricingCatalogVersionListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const reloadVersions = useCallback(() => {
+    setReloadToken((token) => token + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +61,7 @@ export function TradeCatalogTabPanel({
     return () => {
       cancelled = true;
     };
-  }, [craftsmanId, trade, t]);
+  }, [craftsmanId, trade, t, reloadToken]);
 
   if (loading) {
     return (
@@ -69,26 +80,21 @@ export function TradeCatalogTabPanel({
     );
   }
 
-  const draft = versions?.find((version) => version.status === 'DRAFT') ?? null;
-  const publishedCount = versions?.filter((version) => version.status === 'PUBLISHED').length ?? 0;
+  const draft = findDraftVersion(versions ?? []);
+  const activePublished = findActivePublishedVersion(versions ?? []);
 
   return (
     <Stack spacing={2} sx={{ pt: 2 }}>
-      <Paper sx={{ p: 3 }}>
-        <Stack spacing={1}>
-          <Typography variant="body2" color="text.secondary">
-            {draft
-              ? t('pricingCatalog.tab.draftExists')
-              : t('pricingCatalog.tab.noDraft')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('pricingCatalog.tab.publishedCount', { count: publishedCount })}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('pricingCatalog.tab.placeholder')}
-          </Typography>
-        </Stack>
-      </Paper>
+      {draft ? (
+        <CatalogDraftPanel versionId={draft.id} />
+      ) : (
+        <CatalogDraftStartPanel
+          craftsmanId={craftsmanId}
+          trade={trade}
+          activePublished={activePublished}
+          onDraftCreated={reloadVersions}
+        />
+      )}
     </Stack>
   );
 }
