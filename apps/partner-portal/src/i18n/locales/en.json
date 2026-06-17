@@ -91,6 +91,41 @@
       "effectiveFrom": "Effective from",
       "effectiveFromRequired": "Set an effective date before publishing."
     },
+    "quote": {
+      "heading": "Try a quote",
+      "calculate": "Calculate",
+      "calculating": "Calculating…",
+      "calculated": "Quote calculated.",
+      "calculateFailed": "Could not calculate quote.",
+      "loadFailed": "Could not load positions for quote.",
+      "noPositions": "No positions available to quote.",
+      "noLines": "Enter a quantity greater than zero for at least one position.",
+      "columns": {
+        "position": "Position",
+        "unit": "Unit",
+        "netPrice": "Net price",
+        "quantity": "Quantity"
+      },
+      "breakdown": {
+        "heading": "Breakdown",
+        "columns": {
+          "position": "Position",
+          "quantity": "Qty",
+          "net": "Net",
+          "gross": "Gross",
+          "surcharges": "Surcharges",
+          "discounts": "Discounts",
+          "vatRate": "VAT rate",
+          "vat": "VAT"
+        },
+        "totals": {
+          "net": "Net total",
+          "discount": "Total discount",
+          "vat": "Total VAT",
+          "gross": "Gross total"
+        }
+      }
+    },
     "positions": {
       "add": "Add position",
       "edit": "Edit position",

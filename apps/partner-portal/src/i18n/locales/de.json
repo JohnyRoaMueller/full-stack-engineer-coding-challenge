@@ -91,6 +91,41 @@
       "effectiveFrom": "Gültig ab",
       "effectiveFromRequired": "Lege ein Gültigkeitsdatum fest, bevor Du veröffentlichst."
     },
+    "quote": {
+      "heading": "Quote testen",
+      "calculate": "Berechnen",
+      "calculating": "Wird berechnet …",
+      "calculated": "Quote berechnet.",
+      "calculateFailed": "Quote konnte nicht berechnet werden.",
+      "loadFailed": "Positionen für die Quote konnten nicht geladen werden.",
+      "noPositions": "Keine Positionen für eine Quote verfügbar.",
+      "noLines": "Gib für mindestens eine Position eine Menge größer als null ein.",
+      "columns": {
+        "position": "Position",
+        "unit": "Einheit",
+        "netPrice": "Nettopreis",
+        "quantity": "Menge"
+      },
+      "breakdown": {
+        "heading": "Aufschlüsselung",
+        "columns": {
+          "position": "Position",
+          "quantity": "Menge",
+          "net": "Netto",
+          "gross": "Brutto",
+          "surcharges": "Zuschläge",
+          "discounts": "Rabatte",
+          "vatRate": "MwSt.-Satz",
+          "vat": "MwSt."
+        },
+        "totals": {
+          "net": "Netto gesamt",
+          "discount": "Rabatt gesamt",
+          "vat": "MwSt. gesamt",
+          "gross": "Brutto gesamt"
+        }
+      }
+    },
     "positions": {
       "add": "Position hinzufügen",
       "edit": "Position bearbeiten",

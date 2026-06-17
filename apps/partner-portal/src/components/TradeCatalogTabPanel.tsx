@@ -13,6 +13,7 @@ import {
 } from '../services/pricing-catalogs.service';
 import { CatalogDraftPanel } from './CatalogDraftPanel';
 import { CatalogDraftStartPanel } from './CatalogDraftStartPanel';
+import { CatalogQuotePanel } from './CatalogQuotePanel';
 
 interface TradeCatalogTabPanelProps {
   craftsmanId: string;
@@ -82,6 +83,7 @@ export function TradeCatalogTabPanel({
 
   const draft = findDraftVersion(versions ?? []);
   const activePublished = findActivePublishedVersion(versions ?? []);
+  const quoteVersionId = draft?.id ?? activePublished?.id;
 
   return (
     <Stack spacing={2} sx={{ pt: 2 }}>
@@ -99,6 +101,7 @@ export function TradeCatalogTabPanel({
           onDraftCreated={reloadVersions}
         />
       )}
+      {quoteVersionId ? <CatalogQuotePanel versionId={quoteVersionId} /> : null}
     </Stack>
   );
 }
