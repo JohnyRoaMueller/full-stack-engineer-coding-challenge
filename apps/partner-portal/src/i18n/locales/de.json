@@ -77,8 +77,45 @@
       "fromActiveHint": "Es gibt eine aktive veröffentlichte Version. Du kannst einen neuen Entwurf daraus erstellen.",
       "emptyHint": "Es gibt noch keine veröffentlichte Version. Starte einen leeren Entwurf.",
       "positionCount": "{{count}} Position(en)",
-      "noPositions": "Noch keine Positionen.",
-      "tablePlaceholder": "Die bearbeitbare Positionstabelle folgt im nächsten Schritt."
+      "noPositions": "Noch keine Positionen."
+    },
+    "positions": {
+      "add": "Position hinzufügen",
+      "edit": "Position bearbeiten",
+      "delete": "Position löschen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert …",
+      "saved": "Positionen gespeichert.",
+      "saveFailed": "Positionen konnten nicht gespeichert werden.",
+      "savePosition": "Übernehmen",
+      "cancel": "Abbrechen",
+      "empty": "Noch keine Positionen. Füge die erste Position hinzu.",
+      "addTitle": "Position hinzufügen",
+      "editTitle": "Position bearbeiten",
+      "deleteTitle": "Position löschen?",
+      "deleteMessage": "Möchtest Du die Position „{{label}}“ ({{key}}) wirklich löschen?",
+      "deleteConfirm": "Löschen",
+      "columns": {
+        "key": "Key",
+        "label": "Bezeichnung",
+        "unit": "Einheit",
+        "netPrice": "Nettopreis (€)",
+        "vat": "MwSt.",
+        "attributes": "Attribute",
+        "actions": "Aktionen"
+      },
+      "units": {
+        "piece": "Stück",
+        "m2": "m²",
+        "meter": "Meter",
+        "hour": "Stunde",
+        "flat": "Pauschal"
+      },
+      "errors": {
+        "duplicateKey": "Dieser Key existiert bereits.",
+        "invalidPrice": "Bitte gib einen gültigen Nettopreis ein.",
+        "invalidVat": "Bitte gib einen gültigen MwSt.-Satz zwischen 0 und 100 ein."
+      }
     }
   },
   "validation": {

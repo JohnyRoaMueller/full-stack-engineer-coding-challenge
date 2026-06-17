@@ -77,8 +77,45 @@
       "fromActiveHint": "An active published version exists. You can create a new draft from it.",
       "emptyHint": "No published version exists yet. Start with an empty draft.",
       "positionCount": "{{count}} position(s)",
-      "noPositions": "No positions yet.",
-      "tablePlaceholder": "The editable positions table will be added in the next step."
+      "noPositions": "No positions yet."
+    },
+    "positions": {
+      "add": "Add position",
+      "edit": "Edit position",
+      "delete": "Delete position",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Positions saved.",
+      "saveFailed": "Could not save positions.",
+      "savePosition": "Apply",
+      "cancel": "Cancel",
+      "empty": "No positions yet. Add your first position.",
+      "addTitle": "Add position",
+      "editTitle": "Edit position",
+      "deleteTitle": "Delete position?",
+      "deleteMessage": "Do you want to delete position \"{{label}}\" ({{key}})?",
+      "deleteConfirm": "Delete",
+      "columns": {
+        "key": "Key",
+        "label": "Label",
+        "unit": "Unit",
+        "netPrice": "Net price (€)",
+        "vat": "VAT",
+        "attributes": "Attributes",
+        "actions": "Actions"
+      },
+      "units": {
+        "piece": "Piece",
+        "m2": "m²",
+        "meter": "Meter",
+        "hour": "Hour",
+        "flat": "Flat rate"
+      },
+      "errors": {
+        "duplicateKey": "This key already exists.",
+        "invalidPrice": "Enter a valid net price.",
+        "invalidVat": "Enter a valid VAT rate between 0 and 100."
+      }
     }
   },
   "validation": {
