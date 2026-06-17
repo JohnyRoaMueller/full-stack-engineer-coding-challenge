@@ -77,4 +77,27 @@ describe('quoteResponseToBreakdown', () => {
     expect(breakdown.lines[0]?.surchargesSummary).toBe('—');
     expect(breakdown.lines[0]?.discountsSummary).toBe('—');
   });
+
+  it('uses a custom empty label when provided', () => {
+    const breakdown = quoteResponseToBreakdown(
+      {
+        ...sampleQuote,
+        lines: [
+          {
+            positionKey: 'flat',
+            quantity: 1,
+            net: 5000,
+            gross: 5950,
+            appliedSurcharges: [],
+            appliedDiscounts: [],
+          },
+        ],
+      },
+      'de-DE',
+      'n/a',
+    );
+
+    expect(breakdown.lines[0]?.surchargesSummary).toBe('n/a');
+    expect(breakdown.lines[0]?.discountsSummary).toBe('n/a');
+  });
 });
