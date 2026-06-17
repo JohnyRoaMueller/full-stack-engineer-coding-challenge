@@ -58,7 +58,18 @@
     "heading": "My Pricing Catalog",
     "subheading": "Manage your price positions per trade category.",
     "empty": "No craftsman is linked to this account.",
-    "placeholder": "Catalog content will be added in the next steps."
+    "noTrades": "No trade categories are assigned to you yet.",
+    "tabsLabel": "Trade categories",
+    "messages": {
+      "loadFailed": "Could not load catalog data."
+    },
+    "tab": {
+      "loadFailed": "Could not load catalog versions for this trade.",
+      "draftExists": "A draft exists for this trade.",
+      "noDraft": "No draft available.",
+      "publishedCount": "{{count}} published version(s).",
+      "placeholder": "Positions and further actions will be added in the next steps."
+    }
   },
   "validation": {
     "required": "Required",

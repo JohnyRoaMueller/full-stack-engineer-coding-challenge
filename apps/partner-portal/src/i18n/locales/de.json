@@ -58,7 +58,18 @@
     "heading": "Mein Preiskatalog",
     "subheading": "Verwalte Deine Preispositionen pro Trade-Kategorie.",
     "empty": "Es ist kein Craftsman mit diesem Konto verknüpft.",
-    "placeholder": "Katalog-Inhalt folgt in den nächsten Schritten."
+    "noTrades": "Dir sind noch keine Trade-Kategorien zugewiesen.",
+    "tabsLabel": "Trade-Kategorien",
+    "messages": {
+      "loadFailed": "Katalogdaten konnten nicht geladen werden."
+    },
+    "tab": {
+      "loadFailed": "Katalogversionen für diesen Trade konnten nicht geladen werden.",
+      "draftExists": "Es gibt einen Entwurf für diesen Trade.",
+      "noDraft": "Kein Entwurf vorhanden.",
+      "publishedCount": "{{count}} veröffentlichte Version(en).",
+      "placeholder": "Positionen und weitere Aktionen folgen in den nächsten Schritten."
+    }
   },
   "validation": {
     "required": "Pflichtfeld",
