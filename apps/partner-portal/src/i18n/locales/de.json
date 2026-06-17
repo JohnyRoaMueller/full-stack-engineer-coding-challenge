@@ -79,6 +79,18 @@
       "positionCount": "{{count}} Position(en)",
       "noPositions": "Noch keine Positionen."
     },
+    "publish": {
+      "button": "Veröffentlichen",
+      "title": "Katalog veröffentlichen?",
+      "message": "Diese Version wird ab dem {{date}} aktiv. Veröffentlichte Versionen können nicht mehr bearbeitet werden.",
+      "confirm": "Veröffentlichen",
+      "publishing": "Wird veröffentlicht …",
+      "cancel": "Abbrechen",
+      "success": "Katalog veröffentlicht.",
+      "failed": "Katalog konnte nicht veröffentlicht werden.",
+      "effectiveFrom": "Gültig ab",
+      "effectiveFromRequired": "Lege ein Gültigkeitsdatum fest, bevor Du veröffentlichst."
+    },
     "positions": {
       "add": "Position hinzufügen",
       "edit": "Position bearbeiten",

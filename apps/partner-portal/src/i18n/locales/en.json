@@ -79,6 +79,18 @@
       "positionCount": "{{count}} position(s)",
       "noPositions": "No positions yet."
     },
+    "publish": {
+      "button": "Publish",
+      "title": "Publish catalog?",
+      "message": "This version will become active from {{date}}. Published versions cannot be edited.",
+      "confirm": "Publish",
+      "publishing": "Publishing…",
+      "cancel": "Cancel",
+      "success": "Catalog published.",
+      "failed": "Could not publish catalog.",
+      "effectiveFrom": "Effective from",
+      "effectiveFromRequired": "Set an effective date before publishing."
+    },
     "positions": {
       "add": "Add position",
       "edit": "Edit position",

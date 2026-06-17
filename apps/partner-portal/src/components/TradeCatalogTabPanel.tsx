@@ -86,7 +86,11 @@ export function TradeCatalogTabPanel({
   return (
     <Stack spacing={2} sx={{ pt: 2 }}>
       {draft ? (
-        <CatalogDraftPanel versionId={draft.id} trade={trade} />
+        <CatalogDraftPanel
+          versionId={draft.id}
+          trade={trade}
+          onPublished={reloadVersions}
+        />
       ) : (
         <CatalogDraftStartPanel
           craftsmanId={craftsmanId}

@@ -6,6 +6,7 @@ import {
   Skeleton,
   Snackbar,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { TradeCode } from '@sandbox/types';
@@ -16,17 +17,24 @@ import {
   CatalogPositionInput,
   getCatalogVersion,
   PricingCatalogVersionResponse,
+  publishCatalogVersion,
   updateCatalogVersion,
 } from '../services/pricing-catalogs.service';
 import { versionPositionsToInputs } from '../utils/catalog-positions.utils';
-import { toDiscountInput } from '../utils/pricing-catalog.utils';
+import {
+  dateInputToIso,
+  isoToDateInput,
+  toDiscountInput,
+} from '../utils/pricing-catalog.utils';
 import { CatalogPositionsTable } from './CatalogPositionsTable';
+import { CatalogPublishDialog } from './CatalogPublishDialog';
 import { PositionDeleteDialog } from './PositionDeleteDialog';
 import { PositionFormDialog } from './PositionFormDialog';
 
 interface CatalogDraftPanelProps {
   versionId: string;
   trade: TradeCode;
+  onPublished: () => void;
 }
 
 type FormDialogState =
@@ -42,14 +50,22 @@ function positionsEqual(a: CatalogPositionInput[], b: CatalogPositionInput[]): b
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps): JSX.Element {
+export function CatalogDraftPanel({
+  versionId,
+  trade,
+  onPublished,
+}: CatalogDraftPanelProps): JSX.Element {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<PricingCatalogVersionResponse | null>(null);
   const [positions, setPositions] = useState<CatalogPositionInput[]>([]);
   const [savedPositions, setSavedPositions] = useState<CatalogPositionInput[]>([]);
+  const [effectiveFrom, setEffectiveFrom] = useState('');
+  const [savedEffectiveFrom, setSavedEffectiveFrom] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [formDialog, setFormDialog] = useState<FormDialogState>({ mode: 'closed' });
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({ open: false });
   const [snack, setSnack] = useState<{ severity: 'success' | 'error'; message: string } | null>(
@@ -63,9 +79,12 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
     return getCatalogVersion(versionId)
       .then((version) => {
         const nextPositions = versionPositionsToInputs(version.positions);
+        const nextEffectiveFrom = isoToDateInput(version.effectiveFrom);
         setDraft(version);
         setPositions(nextPositions);
         setSavedPositions(nextPositions);
+        setEffectiveFrom(nextEffectiveFrom);
+        setSavedEffectiveFrom(nextEffectiveFrom);
       })
       .catch((err: unknown) => {
         const message =
@@ -74,6 +93,8 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
         setDraft(null);
         setPositions([]);
         setSavedPositions([]);
+        setEffectiveFrom('');
+        setSavedEffectiveFrom('');
       })
       .finally(() => {
         setLoading(false);
@@ -84,10 +105,22 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
     void loadDraft();
   }, [loadDraft]);
 
-  const isDirty = useMemo(
-    () => !positionsEqual(positions, savedPositions),
-    [positions, savedPositions],
-  );
+  const isDirty = useMemo(() => {
+    if (!positionsEqual(positions, savedPositions)) {
+      return true;
+    }
+    return effectiveFrom !== savedEffectiveFrom;
+  }, [positions, savedPositions, effectiveFrom, savedEffectiveFrom]);
+
+  const buildUpdatePayload = (): {
+    positions: CatalogPositionInput[];
+    discounts: ReturnType<typeof toDiscountInput>[];
+    effectiveFrom: string | null;
+  } => ({
+    positions,
+    discounts: draft?.discounts.map(toDiscountInput) ?? [],
+    effectiveFrom: effectiveFrom ? dateInputToIso(effectiveFrom) : null,
+  });
 
   const handleSave = async (): Promise<void> => {
     if (!draft) {
@@ -95,14 +128,14 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
     }
     setSaving(true);
     try {
-      const updated = await updateCatalogVersion(versionId, {
-        positions,
-        discounts: draft.discounts.map(toDiscountInput),
-      });
+      const updated = await updateCatalogVersion(versionId, buildUpdatePayload());
       const nextPositions = versionPositionsToInputs(updated.positions);
+      const nextEffectiveFrom = isoToDateInput(updated.effectiveFrom);
       setDraft(updated);
       setPositions(nextPositions);
       setSavedPositions(nextPositions);
+      setEffectiveFrom(nextEffectiveFrom);
+      setSavedEffectiveFrom(nextEffectiveFrom);
       setSnack({ severity: 'success', message: t('pricingCatalog.positions.saved') });
     } catch (err: unknown) {
       const message =
@@ -110,6 +143,28 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
       setSnack({ severity: 'error', message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePublishConfirm = async (): Promise<void> => {
+    if (!draft || !effectiveFrom) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      if (isDirty) {
+        await updateCatalogVersion(versionId, buildUpdatePayload());
+      }
+      await publishCatalogVersion(versionId);
+      setPublishDialogOpen(false);
+      setSnack({ severity: 'success', message: t('pricingCatalog.publish.success') });
+      onPublished();
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError ? err.message : t('pricingCatalog.publish.failed');
+      setSnack({ severity: 'error', message });
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -159,25 +214,49 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
       >
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           <Chip label={t('pricingCatalog.draft.status')} color="warning" size="small" />
           <Typography variant="body2" color="text.secondary">
             {trade}
           </Typography>
         </Stack>
-        <Button
-          variant="contained"
-          onClick={() => void handleSave()}
-          disabled={saving || !isDirty}
-          startIcon={saving ? <CircularProgress size={16} /> : undefined}
-        >
-          {saving ? t('pricingCatalog.positions.saving') : t('pricingCatalog.positions.save')}
-        </Button>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+          <TextField
+            label={t('pricingCatalog.publish.effectiveFrom')}
+            type="date"
+            size="small"
+            value={effectiveFrom}
+            onChange={(event) => setEffectiveFrom(event.target.value)}
+            disabled={saving || publishing}
+            InputLabelProps={{ shrink: true }}
+            error={!effectiveFrom}
+            helperText={
+              !effectiveFrom ? t('pricingCatalog.publish.effectiveFromRequired') : undefined
+            }
+            sx={{ minWidth: 180 }}
+          />
+          <Button
+            variant="outlined"
+            onClick={() => void handleSave()}
+            disabled={saving || publishing || !isDirty}
+            startIcon={saving ? <CircularProgress size={16} /> : undefined}
+          >
+            {saving ? t('pricingCatalog.positions.saving') : t('pricingCatalog.positions.save')}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setPublishDialogOpen(true)}
+            disabled={saving || publishing || !effectiveFrom}
+          >
+            {t('pricingCatalog.publish.button')}
+          </Button>
+        </Stack>
       </Stack>
 
       <CatalogPositionsTable
         positions={positions}
-        disabled={saving}
+        disabled={saving || publishing}
         onAdd={() => setFormDialog({ mode: 'add' })}
         onEdit={(key) => setFormDialog({ mode: 'edit', key })}
         onDelete={(key) => {
@@ -197,6 +276,14 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
         existingKeys={positions.map((position) => position.key)}
         onSave={handlePositionSave}
         onClose={() => setFormDialog({ mode: 'closed' })}
+      />
+
+      <CatalogPublishDialog
+        open={publishDialogOpen}
+        effectiveFrom={effectiveFrom}
+        publishing={publishing}
+        onConfirm={() => void handlePublishConfirm()}
+        onClose={() => setPublishDialogOpen(false)}
       />
 
       <PositionDeleteDialog

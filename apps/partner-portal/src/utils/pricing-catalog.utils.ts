@@ -42,6 +42,22 @@ export function toPositionInput(position: CatalogPositionResponse): CatalogPosit
   };
 }
 
+export function isoToDateInput(iso: string | null): string {
+  if (!iso) {
+    return '';
+  }
+  return iso.slice(0, 10);
+}
+
+export function dateInputToIso(date: string): string {
+  return `${date}T00:00:00.000Z`;
+}
+
+export function formatDateDisplay(dateInput: string): string {
+  const [year, month, day] = dateInput.split('-');
+  return `${day}.${month}.${year}`;
+}
+
 export function toDiscountInput(discount: CatalogDiscountResponse): CatalogDiscountInput {
   return {
     key: discount.key,
