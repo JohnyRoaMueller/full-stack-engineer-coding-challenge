@@ -1,10 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TRADE_CODES, TradeCode } from '@sandbox/types';
-import { IsIn, IsUUID } from 'class-validator';
+import { IsIn, Matches } from 'class-validator';
+
+/** Accepts UUID-shaped ids including the deterministic sandbox partner craftsman id. */
+const CRAFTSMAN_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class CreatePricingCatalogDto {
   @ApiProperty({ format: 'uuid' })
-  @IsUUID()
+  @Matches(CRAFTSMAN_ID_PATTERN, { message: 'craftsmanId must be a UUID' })
   craftsmanId: string;
 
   @ApiProperty({ enum: TRADE_CODES, example: 'HVAC' })
