@@ -1,4 +1,4 @@
-import { Alert, Box, Skeleton, Stack } from '@mui/material';
+import { Skeleton, Stack } from '@mui/material';
 import { TradeCode } from '@sandbox/types';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import {
 import { CatalogDraftPanel } from './CatalogDraftPanel';
 import { CatalogDraftStartPanel } from './CatalogDraftStartPanel';
 import { CatalogQuotePanel } from './CatalogQuotePanel';
+import { ErrorAlert } from './ErrorAlert';
 
 interface TradeCatalogTabPanelProps {
   craftsmanId: string;
@@ -75,9 +76,9 @@ export function TradeCatalogTabPanel({
 
   if (error) {
     return (
-      <Box sx={{ pt: 2 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <Stack spacing={2} sx={{ pt: 2 }}>
+        <ErrorAlert message={error} onRetry={reloadVersions} />
+      </Stack>
     );
   }
 

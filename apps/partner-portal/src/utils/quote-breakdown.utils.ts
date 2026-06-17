@@ -31,9 +31,10 @@ export interface QuoteBreakdownView {
 function formatAppliedItems(
   items: ReadonlyArray<{ label: string; amount: number }>,
   locale: string,
+  emptyLabel: string,
 ): string {
   if (items.length === 0) {
-    return '—';
+    return emptyLabel;
   }
   return items
     .map((item) => `${item.label}: ${formatNetPriceEuro(item.amount, locale)}`)
@@ -43,6 +44,7 @@ function formatAppliedItems(
 export function quoteResponseToBreakdown(
   response: QuoteResponse,
   locale = 'de-DE',
+  emptyLabel = '—',
 ): QuoteBreakdownView {
   return {
     lines: response.lines.map((line) => ({
@@ -50,8 +52,8 @@ export function quoteResponseToBreakdown(
       quantity: line.quantity,
       net: formatNetPriceEuro(line.net, locale),
       gross: formatNetPriceEuro(line.gross, locale),
-      surchargesSummary: formatAppliedItems(line.appliedSurcharges, locale),
-      discountsSummary: formatAppliedItems(line.appliedDiscounts, locale),
+      surchargesSummary: formatAppliedItems(line.appliedSurcharges, locale, emptyLabel),
+      discountsSummary: formatAppliedItems(line.appliedDiscounts, locale, emptyLabel),
     })),
     vatBreakdown: response.vatBreakdown.map((entry) => ({
       vatRateLabel: formatVatRate(String(entry.vatRate)),

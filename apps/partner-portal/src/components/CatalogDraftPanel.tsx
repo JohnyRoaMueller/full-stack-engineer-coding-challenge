@@ -1,10 +1,8 @@
 import {
-  Alert,
   Button,
   Chip,
   CircularProgress,
   Skeleton,
-  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -12,6 +10,7 @@ import {
 import { TradeCode } from '@sandbox/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMutationSnack } from '../hooks/useMutationSnack';
 import { ApiError } from '../services/api.service';
 import {
   CatalogPositionInput,
@@ -28,6 +27,8 @@ import {
 } from '../utils/pricing-catalog.utils';
 import { CatalogPositionsTable } from './CatalogPositionsTable';
 import { CatalogPublishDialog } from './CatalogPublishDialog';
+import { ErrorAlert } from './ErrorAlert';
+import { MutationSnackbar } from './MutationSnackbar';
 import { PositionDeleteDialog } from './PositionDeleteDialog';
 import { PositionFormDialog } from './PositionFormDialog';
 
@@ -68,9 +69,7 @@ export function CatalogDraftPanel({
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [formDialog, setFormDialog] = useState<FormDialogState>({ mode: 'closed' });
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({ open: false });
-  const [snack, setSnack] = useState<{ severity: 'success' | 'error'; message: string } | null>(
-    null,
-  );
+  const { snack, showSuccess, showError, closeSnack } = useMutationSnack();
 
   const loadDraft = useCallback(() => {
     setLoading(true);
@@ -136,11 +135,11 @@ export function CatalogDraftPanel({
       setSavedPositions(nextPositions);
       setEffectiveFrom(nextEffectiveFrom);
       setSavedEffectiveFrom(nextEffectiveFrom);
-      setSnack({ severity: 'success', message: t('pricingCatalog.positions.saved') });
+      showSuccess(t('pricingCatalog.positions.saved'));
     } catch (err: unknown) {
       const message =
         err instanceof ApiError ? err.message : t('pricingCatalog.positions.saveFailed');
-      setSnack({ severity: 'error', message });
+      showError(message);
     } finally {
       setSaving(false);
     }
@@ -157,12 +156,12 @@ export function CatalogDraftPanel({
       }
       await publishCatalogVersion(versionId);
       setPublishDialogOpen(false);
-      setSnack({ severity: 'success', message: t('pricingCatalog.publish.success') });
+      showSuccess(t('pricingCatalog.publish.success'));
       onPublished();
     } catch (err: unknown) {
       const message =
         err instanceof ApiError ? err.message : t('pricingCatalog.publish.failed');
-      setSnack({ severity: 'error', message });
+      showError(message);
     } finally {
       setPublishing(false);
     }
@@ -203,7 +202,12 @@ export function CatalogDraftPanel({
   }
 
   if (error || !draft) {
-    return <Alert severity="error">{error ?? t('pricingCatalog.draft.loadFailed')}</Alert>;
+    return (
+      <ErrorAlert
+        message={error ?? t('pricingCatalog.draft.loadFailed')}
+        onRetry={() => void loadDraft()}
+      />
+    );
   }
 
   return (
@@ -294,18 +298,7 @@ export function CatalogDraftPanel({
         onClose={() => setDeleteDialog({ open: false })}
       />
 
-      <Snackbar
-        open={!!snack}
-        autoHideDuration={3500}
-        onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        {snack ? (
-          <Alert severity={snack.severity} onClose={() => setSnack(null)}>
-            {snack.message}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
+      <MutationSnackbar snack={snack} onClose={closeSnack} />
     </Stack>
   );
 }

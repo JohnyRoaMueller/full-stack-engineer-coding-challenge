@@ -1,8 +1,8 @@
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import {
-  Box,
   Button,
   IconButton,
   Paper,
@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { CatalogPositionInput } from '../services/pricing-catalogs.service';
 import { toPositionTableRow } from '../utils/catalog-positions.utils';
+import { EmptyState } from './EmptyState';
 
 interface CatalogPositionsTableProps {
   positions: CatalogPositionInput[];
@@ -39,7 +40,7 @@ export function CatalogPositionsTable({
 
   return (
     <Stack spacing={2}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Stack direction="row" justifyContent="flex-end">
         <Button
           variant="outlined"
           startIcon={<AddIcon />}
@@ -48,13 +49,19 @@ export function CatalogPositionsTable({
         >
           {t('pricingCatalog.positions.add')}
         </Button>
-      </Box>
+      </Stack>
 
       {positions.length === 0 ? (
         <Paper sx={{ p: 4 }}>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            {t('pricingCatalog.positions.empty')}
-          </Typography>
+          <EmptyState
+            icon={<Inventory2OutlinedIcon fontSize="large" />}
+            message={t('pricingCatalog.positions.empty')}
+            action={
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd} disabled={disabled}>
+                {t('pricingCatalog.positions.add')}
+              </Button>
+            }
+          />
         </Paper>
       ) : (
         <Paper>
@@ -87,7 +94,7 @@ export function CatalogPositionsTable({
               </TableHead>
               <TableBody>
                 {positions.map((position) => {
-                  const row = toPositionTableRow(position, locale);
+                  const row = toPositionTableRow(position, locale, t('common.notAvailable'));
                   return (
                     <TableRow key={position.key} hover>
                       <TableCell>

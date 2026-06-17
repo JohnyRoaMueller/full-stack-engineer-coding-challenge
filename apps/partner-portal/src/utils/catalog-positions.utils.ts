@@ -27,12 +27,15 @@ export function formatVatRate(vatRate: string): string {
   return `${formatted} %`;
 }
 
-export function summarizeAttributes(attributes: Record<string, unknown> | undefined): string {
+export function summarizeAttributes(
+  attributes: Record<string, unknown> | undefined,
+  emptyLabel = '—',
+): string {
   const entries = Object.entries(attributes ?? {}).filter(
     ([, value]) => value !== null && value !== undefined && value !== '',
   );
   if (entries.length === 0) {
-    return '—';
+    return emptyLabel;
   }
   return entries.map(([name, value]) => `${name}: ${String(value)}`).join(', ');
 }
@@ -40,6 +43,7 @@ export function summarizeAttributes(attributes: Record<string, unknown> | undefi
 export function toPositionTableRow(
   position: CatalogPositionInput,
   locale = 'de-DE',
+  emptyLabel = '—',
 ): PositionTableRow {
   return {
     key: position.key,
@@ -47,7 +51,7 @@ export function toPositionTableRow(
     unit: position.unit,
     netPriceEuro: formatNetPriceEuro(position.netPrice, locale),
     vatRateLabel: formatVatRate(position.vatRate),
-    attributesSummary: summarizeAttributes(position.attributes),
+    attributesSummary: summarizeAttributes(position.attributes, emptyLabel),
   };
 }
 

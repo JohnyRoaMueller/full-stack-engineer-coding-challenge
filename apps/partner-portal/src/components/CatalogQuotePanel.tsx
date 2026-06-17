@@ -1,12 +1,10 @@
 import CalculateIcon from '@mui/icons-material/Calculate';
 import {
-  Alert,
   Button,
   CircularProgress,
   Divider,
   Paper,
   Skeleton,
-  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -19,6 +17,7 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMutationSnack } from '../hooks/useMutationSnack';
 import { ApiError } from '../services/api.service';
 import {
   CatalogPositionResponse,
@@ -28,6 +27,9 @@ import {
 } from '../services/pricing-catalogs.service';
 import { formatNetPriceEuro } from '../utils/catalog-positions.utils';
 import { quoteResponseToBreakdown, QuoteBreakdownView } from '../utils/quote-breakdown.utils';
+import { EmptyState } from './EmptyState';
+import { ErrorAlert } from './ErrorAlert';
+import { MutationSnackbar } from './MutationSnackbar';
 
 interface CatalogQuotePanelProps {
   versionId: string;
@@ -43,9 +45,7 @@ export function CatalogQuotePanel({ versionId }: CatalogQuotePanelProps): JSX.El
   const [loadError, setLoadError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [breakdown, setBreakdown] = useState<QuoteBreakdownView | null>(null);
-  const [snack, setSnack] = useState<{ severity: 'success' | 'error'; message: string } | null>(
-    null,
-  );
+  const { snack, showSuccess, showError, closeSnack } = useMutationSnack();
 
   const loadPositions = useCallback(() => {
     setLoading(true);
@@ -93,19 +93,19 @@ export function CatalogQuotePanel({ versionId }: CatalogQuotePanelProps): JSX.El
       .filter((line) => Number.isFinite(line.quantity) && line.quantity > 0);
 
     if (lines.length === 0) {
-      setSnack({ severity: 'error', message: t('pricingCatalog.quote.noLines') });
+      showError(t('pricingCatalog.quote.noLines'));
       return;
     }
 
     setCalculating(true);
     try {
       const response: QuoteResponse = await quoteCatalogVersion(versionId, { lines });
-      setBreakdown(quoteResponseToBreakdown(response, locale));
-      setSnack({ severity: 'success', message: t('pricingCatalog.quote.calculated') });
+      setBreakdown(quoteResponseToBreakdown(response, locale, t('common.notAvailable')));
+      showSuccess(t('pricingCatalog.quote.calculated'));
     } catch (err: unknown) {
       const message =
         err instanceof ApiError ? err.message : t('pricingCatalog.quote.calculateFailed');
-      setSnack({ severity: 'error', message });
+      showError(message);
       setBreakdown(null);
     } finally {
       setCalculating(false);
@@ -126,7 +126,7 @@ export function CatalogQuotePanel({ versionId }: CatalogQuotePanelProps): JSX.El
   if (loadError) {
     return (
       <Paper sx={{ p: 3 }}>
-        <Alert severity="error">{loadError}</Alert>
+        <ErrorAlert message={loadError} onRetry={() => void loadPositions()} />
       </Paper>
     );
   }
@@ -138,9 +138,7 @@ export function CatalogQuotePanel({ versionId }: CatalogQuotePanelProps): JSX.El
           <Typography variant="h6">{t('pricingCatalog.quote.heading')}</Typography>
 
           {positions.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              {t('pricingCatalog.quote.noPositions')}
-            </Typography>
+            <EmptyState icon={<CalculateIcon fontSize="large" />} message={t('pricingCatalog.quote.noPositions')} />
           ) : (
             <>
               <TableContainer>
@@ -310,18 +308,7 @@ export function CatalogQuotePanel({ versionId }: CatalogQuotePanelProps): JSX.El
         </Stack>
       </Paper>
 
-      <Snackbar
-        open={!!snack}
-        autoHideDuration={3500}
-        onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        {snack ? (
-          <Alert severity={snack.severity} onClose={() => setSnack(null)}>
-            {snack.message}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
+      <MutationSnackbar snack={snack} onClose={closeSnack} />
     </>
   );
 }

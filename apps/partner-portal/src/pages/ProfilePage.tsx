@@ -1,5 +1,4 @@
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -7,15 +6,19 @@ import {
   Divider,
   Paper,
   Skeleton,
-  Snackbar,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { MutationSnackbar } from '../components/MutationSnackbar';
 import { useAuth } from '../contexts/AuthContext';
+import { useMutationSnack } from '../hooks/useMutationSnack';
 import { ApiError } from '../services/api.service';
 import {
   CraftsmanResponse,
@@ -57,9 +60,8 @@ export function ProfilePage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [snack, setSnack] = useState<{ severity: 'success' | 'error'; message: string } | null>(
-    null,
-  );
+  const [reloadToken, setReloadToken] = useState(0);
+  const { snack, showSuccess, showError, closeSnack } = useMutationSnack();
 
   const {
     register,
@@ -68,11 +70,17 @@ export function ProfilePage(): JSX.Element {
     formState: { errors, isDirty },
   } = useForm<ProfileForm>();
 
+  const reloadProfile = useCallback(() => {
+    setReloadToken((token) => token + 1);
+  }, []);
+
   useEffect(() => {
     if (!user?.craftsmanId) {
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setLoadError(null);
     fetchCraftsman(user.craftsmanId)
       .then((c) => {
         setCraftsman(c);
@@ -81,9 +89,10 @@ export function ProfilePage(): JSX.Element {
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : t('profile.messages.loadFailed');
         setLoadError(message);
+        setCraftsman(null);
       })
       .finally(() => setLoading(false));
-  }, [user, reset, t]);
+  }, [user?.craftsmanId, reset, t, reloadToken]);
 
   const onSubmit = async (values: ProfileForm): Promise<void> => {
     if (!craftsman) return;
@@ -102,10 +111,10 @@ export function ProfilePage(): JSX.Element {
       });
       setCraftsman(updated);
       reset(toFormValues(updated));
-      setSnack({ severity: 'success', message: t('profile.messages.saved') });
+      showSuccess(t('profile.messages.saved'));
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : t('profile.messages.saveFailed');
-      setSnack({ severity: 'error', message });
+      showError(message);
     } finally {
       setSubmitting(false);
     }
@@ -122,23 +131,25 @@ export function ProfilePage(): JSX.Element {
     );
   }
 
-  // Empty state — no craftsman bound to user (e.g. ADMIN)
   if (!user?.craftsmanId) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Stack spacing={1} alignItems="center" textAlign="center">
-          <Typography variant="h2">{t('profile.heading')}</Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('profile.empty')}
-          </Typography>
-        </Stack>
+        <EmptyState
+          icon={<PersonOffOutlinedIcon fontSize="large" />}
+          message={t('profile.empty')}
+        />
       </Paper>
     );
   }
 
   // Error state
   if (loadError || !craftsman) {
-    return <Alert severity="error">{loadError ?? t('profile.messages.loadFailed')}</Alert>;
+    return (
+      <ErrorAlert
+        message={loadError ?? t('profile.messages.loadFailed')}
+        onRetry={reloadProfile}
+      />
+    );
   }
 
   return (
@@ -238,18 +249,7 @@ export function ProfilePage(): JSX.Element {
         </Stack>
       </Paper>
 
-      <Snackbar
-        open={!!snack}
-        autoHideDuration={3500}
-        onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        {snack ? (
-          <Alert severity={snack.severity} onClose={() => setSnack(null)}>
-            {snack.message}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
+      <MutationSnackbar snack={snack} onClose={closeSnack} />
     </Stack>
   );
 }

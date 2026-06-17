@@ -1,4 +1,8 @@
 {
+  "common": {
+    "retry": "Try again",
+    "notAvailable": "—"
+  },
   "app": {
     "title": "Partner Portal",
     "loading": "Loading…",

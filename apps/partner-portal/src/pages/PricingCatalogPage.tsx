@@ -1,6 +1,6 @@
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined';
 import {
-  Alert,
-  Box,
   Paper,
   Skeleton,
   Stack,
@@ -9,8 +9,10 @@ import {
   Typography,
 } from '@mui/material';
 import { TRADE_CODES, TradeCode } from '@sandbox/types';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorAlert } from '../components/ErrorAlert';
 import { TradeCatalogTabPanel } from '../components/TradeCatalogTabPanel';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiError } from '../services/api.service';
@@ -29,7 +31,7 @@ interface TabPanelProps {
 function TabPanel({ children, value, index }: TabPanelProps): JSX.Element {
   return (
     <div role="tabpanel" hidden={value !== index} id={`pricing-catalog-tabpanel-${index}`}>
-      {value === index ? <Box>{children}</Box> : null}
+      {value === index ? <Stack>{children}</Stack> : null}
     </div>
   );
 }
@@ -41,6 +43,11 @@ export function PricingCatalogPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const reloadCraftsman = useCallback(() => {
+    setReloadToken((token) => token + 1);
+  }, []);
 
   useEffect(() => {
     if (!user?.craftsmanId) {
@@ -75,17 +82,15 @@ export function PricingCatalogPage(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [user?.craftsmanId, t]);
+  }, [user?.craftsmanId, t, reloadToken]);
 
   if (!user?.craftsmanId) {
     return (
       <Paper sx={{ p: 4 }}>
-        <Stack spacing={1} alignItems="center" textAlign="center">
-          <Typography variant="h2">{t('pricingCatalog.heading')}</Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('pricingCatalog.empty')}
-          </Typography>
-        </Stack>
+        <EmptyState
+          icon={<PersonOffOutlinedIcon fontSize="large" />}
+          message={t('pricingCatalog.empty')}
+        />
       </Paper>
     );
   }
@@ -101,7 +106,12 @@ export function PricingCatalogPage(): JSX.Element {
   }
 
   if (loadError || !craftsman) {
-    return <Alert severity="error">{loadError ?? t('pricingCatalog.messages.loadFailed')}</Alert>;
+    return (
+      <ErrorAlert
+        message={loadError ?? t('pricingCatalog.messages.loadFailed')}
+        onRetry={reloadCraftsman}
+      />
+    );
   }
 
   const trades = craftsman.trades.filter(isTradeCode);
@@ -116,9 +126,10 @@ export function PricingCatalogPage(): JSX.Element {
           </Typography>
         </Stack>
         <Paper sx={{ p: 4 }}>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            {t('pricingCatalog.noTrades')}
-          </Typography>
+          <EmptyState
+            icon={<CategoryOutlinedIcon fontSize="large" />}
+            message={t('pricingCatalog.noTrades')}
+          />
         </Paper>
       </Stack>
     );
