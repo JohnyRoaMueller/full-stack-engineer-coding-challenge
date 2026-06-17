@@ -1,4 +1,5 @@
 import {
+  findPositionsViolatingSchema,
   PricingSchema,
   validatePositionAttributes,
 } from './pricing-schema-validator';
@@ -253,5 +254,59 @@ describe('validatePositionAttributes', () => {
 
       expect(result.valid).toBe(false);
     });
+  });
+});
+
+describe('findPositionsViolatingSchema', () => {
+  const schema: PricingSchema = {
+    fields: [{ name: 'powerKw', type: 'number', required: true }],
+  };
+
+  it('returns an empty list when all positions are valid', () => {
+    const conflicts = findPositionsViolatingSchema(
+      [
+        { versionId: 'v1', key: 'boiler', attributes: { powerKw: 24 } },
+        { versionId: 'v2', key: 'pump', attributes: { powerKw: 5 } },
+      ],
+      schema,
+    );
+
+    expect(conflicts).toEqual([]);
+  });
+
+  it('returns conflicts with version id, position key, and validation errors', () => {
+    const conflicts = findPositionsViolatingSchema(
+      [
+        { versionId: 'v1', key: 'boiler', attributes: {} },
+        { versionId: 'v2', key: 'pump', attributes: { powerKw: 5 } },
+      ],
+      schema,
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toEqual({
+      versionId: 'v1',
+      positionKey: 'boiler',
+      errors: [
+        {
+          field: 'powerKw',
+          message: 'Field "powerKw" is required',
+          code: 'REQUIRED',
+        },
+      ],
+    });
+  });
+
+  it('reports multiple conflicting positions across versions', () => {
+    const conflicts = findPositionsViolatingSchema(
+      [
+        { versionId: 'v1', key: 'a', attributes: { extra: 'x' } },
+        { versionId: 'v2', key: 'b', attributes: { extra: 'y' } },
+      ],
+      schema,
+    );
+
+    expect(conflicts).toHaveLength(2);
+    expect(conflicts.map((c) => c.positionKey).sort()).toEqual(['a', 'b']);
   });
 });

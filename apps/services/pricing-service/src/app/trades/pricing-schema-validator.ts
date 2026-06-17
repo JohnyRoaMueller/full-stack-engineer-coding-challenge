@@ -185,3 +185,39 @@ export function validatePositionAttributes(
     errors,
   };
 }
+
+export interface PositionSchemaConflict {
+  readonly versionId: string;
+  readonly positionKey: string;
+  readonly errors: readonly FieldValidationError[];
+}
+
+export interface CatalogPositionForSchemaCheck {
+  readonly versionId: string;
+  readonly key: string;
+  readonly attributes: Record<string, unknown> | null | undefined;
+}
+
+/**
+ * Returns catalog positions whose attributes would fail validation against a new schema.
+ * Used by PATCH /trades/:trade before persisting a pricingSchema change (DESIGN.md §5).
+ */
+export function findPositionsViolatingSchema(
+  positions: readonly CatalogPositionForSchemaCheck[],
+  schema: PricingSchema,
+): readonly PositionSchemaConflict[] {
+  const conflicts: PositionSchemaConflict[] = [];
+
+  for (const position of positions) {
+    const validation = validatePositionAttributes(schema, position.attributes);
+    if (!validation.valid) {
+      conflicts.push({
+        versionId: position.versionId,
+        positionKey: position.key,
+        errors: validation.errors,
+      });
+    }
+  }
+
+  return conflicts;
+}
