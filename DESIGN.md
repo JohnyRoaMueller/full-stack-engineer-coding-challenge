@@ -208,29 +208,21 @@ Prioritized backend correctness and the partner-portal end-to-end loop over brea
 
 ## 9. Runbook
 
-Full detail in `README.md`. Short version:
-
 ```bash
-# Stack (migrations + seed run automatically in containers)
-docker compose up --build
-# → auth :3001, pricing :3000, partner :4200, admin :4201
-
-# Host dev (faster hot-reload): Postgres in Docker, services on host
+# One-time setup
+nvm use && yarn install
 docker compose up -d postgres
-yarn install && nvm use
-yarn nx run auth-service:migration:run && yarn nx run pricing-service:migration:run
-yarn nx run auth-service:seed && yarn nx run pricing-service:seed
-yarn nx serve auth-service    # :3001
-yarn nx serve pricing-service # :3000
-yarn nx serve partner-portal  # :4200
+
+# Start all services (auth :3001, pricing :3000, partner :4200, admin :4201)
+./scripts/start-all.sh
+
+# Reset database (wipe volumes, re-migrate, re-seed)
+./scripts/reset-db.sh
+
+# Stop host services
+./scripts/stop-all.sh
 
 # Tests
 yarn nx test pricing-service
 yarn nx test partner-portal
-
-# Reset DB
-docker compose down -v && docker compose up -d postgres
-# then re-run migrations + seed (see README §6)
 ```
-
-**Smoke login:** `partner@example.com` / `partner123` (partner-portal), `admin@example.com` / `admin123` (admin-portal). Swagger: `http://localhost:3000/api/docs`.
