@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsArray,
   IsBoolean,
   IsIn,
@@ -19,6 +20,7 @@ export class PricingSchemaFieldDependsOnDto {
   field: string;
 
   @ApiProperty({ oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }] })
+  @Allow()
   equals: string | number | boolean;
 }
 

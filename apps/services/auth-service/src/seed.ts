@@ -21,6 +21,7 @@ async function seed(): Promise<void> {
   const users = AppDataSource.getRepository(User);
   const adminHash = await bcrypt.hash('admin123', 10);
   const partnerHash = await bcrypt.hash('partner123', 10);
+  const partner1Hash = await bcrypt.hash('partner1', 10);
 
   const seeds = [
     {
@@ -32,6 +33,12 @@ async function seed(): Promise<void> {
     {
       email: 'partner@example.com',
       passwordHash: partnerHash,
+      roles: [UserRole.CRAFTSMAN],
+      craftsmanId: PARTNER_CRAFTSMAN_ID,
+    },
+    {
+      email: 'partner1@example.com',
+      passwordHash: partner1Hash,
       roles: [UserRole.CRAFTSMAN],
       craftsmanId: PARTNER_CRAFTSMAN_ID,
     },

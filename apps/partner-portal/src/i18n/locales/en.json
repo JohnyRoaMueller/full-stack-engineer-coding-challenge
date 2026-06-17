@@ -24,7 +24,7 @@
       "email": "Enter a valid email address.",
       "invalidCredentials": "Invalid credentials."
     },
-    "hint": "Use admin@example.com / admin123 or partner@example.com / partner123."
+    "hint": "Use admin@example.com / admin123 or partner1@example.com / partner1."
   },
   "profile": {
     "heading": "My Profile",
@@ -115,6 +115,18 @@
         "duplicateKey": "This key already exists.",
         "invalidPrice": "Enter a valid net price.",
         "invalidVat": "Enter a valid VAT rate between 0 and 100."
+      },
+      "schema": {
+        "heading": "Trade-specific attributes",
+        "loading": "Loading attribute schema…",
+        "loadFailed": "Could not load attribute schema.",
+        "rangeHint": "Allowed: {{min}} – {{max}}",
+        "errors": {
+          "invalidNumber": "{{field}} must be a number.",
+          "min": "{{field}} must be at least {{min}}.",
+          "max": "{{field}} must be at most {{max}}.",
+          "enum": "{{field}} must be one of: {{values}}"
+        }
       }
     }
   },

@@ -192,6 +192,7 @@ export function CatalogDraftPanel({ versionId, trade }: CatalogDraftPanelProps):
       <PositionFormDialog
         open={formDialog.mode !== 'closed'}
         mode={formDialog.mode === 'edit' ? 'edit' : 'add'}
+        trade={trade}
         initial={editingPosition}
         existingKeys={positions.map((position) => position.key)}
         onSave={handlePositionSave}

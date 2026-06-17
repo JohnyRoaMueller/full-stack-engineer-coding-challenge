@@ -24,7 +24,7 @@
       "email": "Bitte gib eine gültige E-Mail-Adresse ein.",
       "invalidCredentials": "Anmeldedaten sind falsch."
     },
-    "hint": "Verwende admin@example.com / admin123 oder partner@example.com / partner123."
+    "hint": "Verwende admin@example.com / admin123 oder partner1@example.com / partner1."
   },
   "profile": {
     "heading": "Mein Profil",
@@ -115,6 +115,18 @@
         "duplicateKey": "Dieser Key existiert bereits.",
         "invalidPrice": "Bitte gib einen gültigen Nettopreis ein.",
         "invalidVat": "Bitte gib einen gültigen MwSt.-Satz zwischen 0 und 100 ein."
+      },
+      "schema": {
+        "heading": "Trade-spezifische Attribute",
+        "loading": "Attribut-Schema wird geladen …",
+        "loadFailed": "Attribut-Schema konnte nicht geladen werden.",
+        "rangeHint": "Erlaubt: {{min}} – {{max}}",
+        "errors": {
+          "invalidNumber": "{{field}} muss eine Zahl sein.",
+          "min": "{{field}} muss mindestens {{min}} sein.",
+          "max": "{{field}} darf höchstens {{max}} sein.",
+          "enum": "{{field}} muss einer dieser Werte sein: {{values}}"
+        }
       }
     }
   },

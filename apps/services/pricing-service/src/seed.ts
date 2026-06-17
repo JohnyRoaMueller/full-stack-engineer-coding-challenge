@@ -5,6 +5,7 @@ import { AppDataSource } from './data-source';
 import { Craftsman } from './app/craftsmen/entities/craftsman.entity';
 import { CraftsmanTradeAssignment } from './app/craftsmen/entities/craftsman-trade-assignment.entity';
 import { TradeConfig } from './app/trades/entities/trade-config.entity';
+import { PricingSchema } from './app/trades/pricing-schema-validator';
 
 const log = new Logger('Seed');
 
@@ -23,6 +24,51 @@ const TRADE_NAMES: Record<string, string> = {
   ROOFING: 'Roofing',
 };
 
+const TRADE_PRICING_SCHEMAS: Partial<Record<string, PricingSchema>> = {
+  WINDOWS: {
+    fields: [
+      { name: 'uValue', type: 'number', required: true, min: 0.1, max: 2.0 },
+      {
+        name: 'frameMaterial',
+        type: 'enum',
+        required: true,
+        values: ['wood', 'aluminium', 'pvc'],
+      },
+      { name: 'widthMm', type: 'number', min: 400, max: 3000 },
+      {
+        name: 'woodTreatment',
+        type: 'string',
+        dependsOn: { field: 'frameMaterial', equals: 'wood' },
+      },
+      { name: 'hasTripleGlazing', type: 'boolean' },
+    ],
+  },
+  HVAC: {
+    fields: [
+      { name: 'heatingPowerKw', type: 'number', required: true, min: 5, max: 50 },
+      {
+        name: 'systemType',
+        type: 'enum',
+        required: true,
+        values: ['gas', 'heat-pump', 'hybrid'],
+      },
+      { name: 'includesRadiatorUpgrade', type: 'boolean' },
+      {
+        name: 'radiatorCount',
+        type: 'number',
+        min: 1,
+        max: 20,
+        dependsOn: { field: 'includesRadiatorUpgrade', equals: true },
+      },
+    ],
+  },
+};
+
+function tradeMetadata(code: string): Record<string, unknown> {
+  const pricingSchema = TRADE_PRICING_SCHEMAS[code];
+  return pricingSchema ? { pricingSchema } : {};
+}
+
 async function seed(): Promise<void> {
   await AppDataSource.initialize();
   log.log('Connected to database');
@@ -39,10 +85,18 @@ async function seed(): Promise<void> {
           trade: code,
           displayName: TRADE_NAMES[code] ?? code,
           isActive: true,
-          metadata: {},
+          metadata: tradeMetadata(code),
         }),
       );
       log.log(`+ trade ${code}`);
+      continue;
+    }
+
+    const pricingSchema = TRADE_PRICING_SCHEMAS[code];
+    if (pricingSchema && !existing.metadata?.pricingSchema) {
+      existing.metadata = { ...existing.metadata, pricingSchema };
+      await trades.save(existing);
+      log.log(`~ trade ${code} pricingSchema`);
     }
   }
 
