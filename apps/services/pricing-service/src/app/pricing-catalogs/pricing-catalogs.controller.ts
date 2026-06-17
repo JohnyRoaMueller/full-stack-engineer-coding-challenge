@@ -87,6 +87,19 @@ export class PricingCatalogsController {
     return this.service.update(versionId, dto, user);
   }
 
+  @Post(':versionId/publish')
+  @Roles(UserRole.ADMIN, UserRole.CRAFTSMAN)
+  @ApiOperation({ summary: 'Publish a DRAFT catalog version' })
+  @ApiResponse({ status: 200, type: PricingCatalogVersionResponseDto })
+  @ApiResponse({ status: 400, description: 'Version is not a DRAFT or effectiveFrom is missing' })
+  @ApiResponse({ status: 404, description: 'Version or trade assignment not found' })
+  publish(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PricingCatalogVersionResponseDto> {
+    return this.service.publish(versionId, user);
+  }
+
   @Post(':versionId/quote')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN, UserRole.CRAFTSMAN)

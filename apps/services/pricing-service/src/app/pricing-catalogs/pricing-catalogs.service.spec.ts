@@ -1,10 +1,11 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { JwtPayload, UserRole } from '@sandbox/types';
 
 import { Craftsman } from '../craftsmen/entities/craftsman.entity';
+import { CraftsmanTradeAssignment } from '../craftsmen/entities/craftsman-trade-assignment.entity';
 import { TradeConfig } from '../trades/entities/trade-config.entity';
 import { CatalogPosition, PositionUnit } from './entities/catalog-position.entity';
 import {
@@ -66,6 +67,107 @@ function buildVersion(overrides: Partial<PricingCatalogVersion> = {}): PricingCa
     discounts: [],
     ...overrides,
   } as PricingCatalogVersion;
+}
+
+const EFFECTIVE_FROM = new Date('2026-06-01T00:00:00.000Z');
+const PREVIOUS_VERSION_ID = '44444444-4444-4444-4444-444444444444';
+
+function buildPublishTransactionMock(
+  draft: PricingCatalogVersion,
+  options: {
+    activePublished?: PricingCatalogVersion | null;
+    assignment?: CraftsmanTradeAssignment | null;
+    tradeMetadata?: Record<string, unknown>;
+  } = {},
+): {
+  versionRepo: {
+    findOne: jest.Mock;
+    save: jest.Mock;
+  };
+  getDraftState: () => PricingCatalogVersion;
+  install: (dataSourceMock: { transaction: jest.Mock }) => void;
+} {
+  let draftState = { ...draft };
+
+  const assignmentQb = {
+    setLock: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(
+      options.assignment === undefined
+        ? ({ id: 'assignment-id', craftsmanId: CRAFTSMAN_ID, trade: 'HVAC' } as CraftsmanTradeAssignment)
+        : options.assignment,
+    ),
+  };
+
+  const versionQb = {
+    setLock: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        ...draftState,
+      }),
+    ),
+  };
+
+  const versionRepo = {
+    createQueryBuilder: jest.fn().mockReturnValue(versionQb),
+    findOne: jest.fn().mockImplementation((args: { where?: Record<string, unknown> }) => {
+      const where = args?.where ?? {};
+      if (
+        where.status === CatalogVersionStatus.PUBLISHED &&
+        Object.prototype.hasOwnProperty.call(where, 'effectiveUntil')
+      ) {
+        return Promise.resolve(options.activePublished ?? null);
+      }
+      return Promise.resolve({
+        ...draftState,
+        positions: draft.positions,
+        discounts: draft.discounts,
+      });
+    }),
+    save: jest.fn().mockImplementation((version: PricingCatalogVersion) => {
+      if (version.id === draftState.id) {
+        draftState = { ...draftState, ...version };
+      }
+      return Promise.resolve(version);
+    }),
+  };
+
+  const positionRepo = {
+    find: jest.fn().mockResolvedValue(draft.positions ?? []),
+  };
+
+  return {
+    versionRepo,
+    getDraftState: () => draftState,
+    install: (dataSourceMock: { transaction: jest.Mock }) => {
+      dataSourceMock.transaction.mockImplementation(async (cb: (tx: DataSource) => Promise<unknown>) =>
+        cb({
+          getRepository: jest.fn().mockImplementation((entity: unknown) => {
+            if (entity === CraftsmanTradeAssignment) {
+              return { createQueryBuilder: jest.fn().mockReturnValue(assignmentQb) };
+            }
+            if (entity === PricingCatalogVersion) {
+              return versionRepo;
+            }
+            if (entity === CatalogPosition) {
+              return positionRepo;
+            }
+            if (entity === TradeConfig) {
+              return {
+                findOne: jest.fn().mockResolvedValue({
+                  trade: 'HVAC',
+                  metadata: options.tradeMetadata ?? { pricingSchema: { fields: [] } },
+                } as unknown as TradeConfig),
+              };
+            }
+            return {};
+          }),
+        } as unknown as DataSource),
+      );
+    },
+  };
 }
 
 describe('PricingCatalogsService', () => {
@@ -374,5 +476,157 @@ describe('PricingCatalogsService', () => {
     );
 
     expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  describe('publish', () => {
+    it('publishes a draft with effectiveFrom and records the publishing user', async () => {
+      const draft = buildVersion({ effectiveFrom: EFFECTIVE_FROM });
+      const publishMock = buildPublishTransactionMock(draft);
+      publishMock.install(dataSourceMock);
+
+      versions.findOne
+        .mockResolvedValueOnce(draft)
+        .mockResolvedValueOnce(
+          buildVersion({
+            status: CatalogVersionStatus.PUBLISHED,
+            effectiveFrom: EFFECTIVE_FROM,
+            publishedByUserId: adminUser.sub,
+          }),
+        );
+
+      const result = await service.publish(VERSION_ID, adminUser);
+
+      expect(result.status).toBe(CatalogVersionStatus.PUBLISHED);
+      expect(result.publishedByUserId).toBe(adminUser.sub);
+      expect(publishMock.getDraftState().status).toBe(CatalogVersionStatus.PUBLISHED);
+      expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes the previously active published version at the new effectiveFrom', async () => {
+      const draft = buildVersion({ effectiveFrom: EFFECTIVE_FROM });
+      const activePublished = buildVersion({
+        id: PREVIOUS_VERSION_ID,
+        status: CatalogVersionStatus.PUBLISHED,
+        effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
+        effectiveUntil: null,
+      });
+      const publishMock = buildPublishTransactionMock(draft, { activePublished });
+      publishMock.install(dataSourceMock);
+
+      versions.findOne
+        .mockResolvedValueOnce(draft)
+        .mockResolvedValueOnce(
+          buildVersion({
+            status: CatalogVersionStatus.PUBLISHED,
+            effectiveFrom: EFFECTIVE_FROM,
+            publishedByUserId: adminUser.sub,
+          }),
+        );
+
+      await service.publish(VERSION_ID, adminUser);
+
+      expect(publishMock.versionRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: PREVIOUS_VERSION_ID,
+          effectiveUntil: EFFECTIVE_FROM,
+        }),
+      );
+      expect(publishMock.versionRepo.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects publish when effectiveFrom is not set', async () => {
+      const draft = buildVersion({ effectiveFrom: null });
+      const publishMock = buildPublishTransactionMock(draft);
+      publishMock.install(dataSourceMock);
+      versions.findOne.mockResolvedValue(draft);
+
+      await expect(service.publish(VERSION_ID, adminUser)).rejects.toMatchObject({
+        response: { message: 'effectiveFrom must be set before publishing' },
+      });
+    });
+
+    it('rejects publishing an already published version', async () => {
+      const published = buildVersion({
+        status: CatalogVersionStatus.PUBLISHED,
+        effectiveFrom: EFFECTIVE_FROM,
+        publishedByUserId: adminUser.sub,
+      });
+      const publishMock = buildPublishTransactionMock(published);
+      publishMock.install(dataSourceMock);
+      versions.findOne.mockResolvedValue(published);
+
+      await expect(service.publish(VERSION_ID, adminUser)).rejects.toMatchObject({
+        response: { message: 'Published catalog versions cannot be modified' },
+      });
+    });
+
+    it('rejects updating a published version', async () => {
+      versions.findOne.mockResolvedValue(
+        buildVersion({
+          status: CatalogVersionStatus.PUBLISHED,
+          effectiveFrom: EFFECTIVE_FROM,
+        }),
+      );
+
+      await expect(
+        service.update(VERSION_ID, { effectiveFrom: '2026-07-01T00:00:00.000Z' }, adminUser),
+      ).rejects.toMatchObject({
+        response: { message: 'Published catalog versions cannot be modified' },
+      });
+    });
+
+    it('rejects publish when the craftsman has no trade assignment', async () => {
+      const draft = buildVersion({ effectiveFrom: EFFECTIVE_FROM });
+      const publishMock = buildPublishTransactionMock(draft, { assignment: null });
+      publishMock.install(dataSourceMock);
+      versions.findOne.mockResolvedValue(draft);
+
+      await expect(service.publish(VERSION_ID, adminUser)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('allows only one concurrent publish attempt to succeed', async () => {
+      const draft = buildVersion({ effectiveFrom: EFFECTIVE_FROM });
+      const publishMock = buildPublishTransactionMock(draft);
+      publishMock.install(dataSourceMock);
+
+      let inTransaction = false;
+      const originalTransaction = dataSourceMock.transaction.getMockImplementation();
+      dataSourceMock.transaction.mockImplementation(async (cb: (tx: DataSource) => Promise<unknown>) => {
+        while (inTransaction) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 0);
+          });
+        }
+        inTransaction = true;
+        try {
+          return await originalTransaction?.(cb);
+        } finally {
+          inTransaction = false;
+        }
+      });
+
+      versions.findOne.mockImplementation(async () => {
+        const state = publishMock.getDraftState();
+        return buildVersion({
+          status: state.status,
+          effectiveFrom: EFFECTIVE_FROM,
+          publishedByUserId: state.publishedByUserId,
+        });
+      });
+
+      const results = await Promise.allSettled([
+        service.publish(VERSION_ID, adminUser),
+        service.publish(VERSION_ID, adminUser),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === 'fulfilled');
+      const rejected = results.filter((result) => result.status === 'rejected');
+
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(BadRequestException);
+    });
   });
 });

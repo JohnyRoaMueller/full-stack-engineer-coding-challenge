@@ -8,9 +8,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload, UserRole } from '@sandbox/types';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 
 import { Craftsman } from '../craftsmen/entities/craftsman.entity';
+import { CraftsmanTradeAssignment } from '../craftsmen/entities/craftsman-trade-assignment.entity';
 import { TradeConfig } from '../trades/entities/trade-config.entity';
 import {
   PricingSchema,
@@ -227,6 +228,87 @@ export class PricingCatalogsService {
         }
       });
     }
+
+    return this.findOne(versionId, user);
+  }
+
+  async publish(
+    versionId: string,
+    user: JwtPayload,
+  ): Promise<PricingCatalogVersionResponseDto> {
+    const preVersion = await this.loadVersionOrThrow(versionId);
+    this.assertCanAccessCatalog(preVersion.craftsmanId, user);
+
+    await this.dataSource.transaction(async (tx) => {
+      const assignmentRepo = tx.getRepository(CraftsmanTradeAssignment);
+      const versionRepo = tx.getRepository(PricingCatalogVersion);
+
+      const assignment = await assignmentRepo
+        .createQueryBuilder('assignment')
+        .setLock('pessimistic_write')
+        .where('assignment.craftsman_id = :craftsmanId', { craftsmanId: preVersion.craftsmanId })
+        .andWhere('assignment.trade = :trade', { trade: preVersion.trade })
+        .getOne();
+
+      if (!assignment) {
+        throw new NotFoundException(
+          `No trade assignment for craftsman ${preVersion.craftsmanId} and trade ${preVersion.trade}`,
+        );
+      }
+
+      const version = await versionRepo
+        .createQueryBuilder('version')
+        .setLock('pessimistic_write')
+        .where('version.id = :versionId', { versionId })
+        .getOne();
+      if (!version) {
+        throw new NotFoundException(`Pricing catalog version ${versionId} not found`);
+      }
+
+      this.assertDraftMutable(version);
+
+      if (!version.effectiveFrom) {
+        throw new BadRequestException('effectiveFrom must be set before publishing');
+      }
+
+      const tradeConfig = await tx.getRepository(TradeConfig).findOne({ where: { trade: version.trade } });
+      if (!tradeConfig) {
+        throw new NotFoundException(`Trade ${version.trade} not found`);
+      }
+      const schema = extractPricingSchema(tradeConfig.metadata);
+      const positions = await tx.getRepository(CatalogPosition).find({ where: { versionId } });
+      for (const position of positions) {
+        const validation = validatePositionAttributes(schema, position.attributes ?? {});
+        if (!validation.valid) {
+          throw new BadRequestException({
+            message: 'Position attributes failed schema validation',
+            errors: validation.errors,
+          });
+        }
+      }
+
+      const activePublished = await versionRepo.findOne({
+        where: {
+          craftsmanId: version.craftsmanId,
+          trade: version.trade,
+          status: CatalogVersionStatus.PUBLISHED,
+          effectiveUntil: IsNull(),
+        },
+      });
+
+      if (activePublished && activePublished.id !== version.id) {
+        activePublished.effectiveUntil = version.effectiveFrom;
+        await versionRepo.save(activePublished);
+      }
+
+      version.status = CatalogVersionStatus.PUBLISHED;
+      version.publishedByUserId = user.sub;
+      await versionRepo.save(version);
+
+      this.logger.log(
+        `Published catalog ${version.id} for ${version.craftsmanId}/${version.trade}`,
+      );
+    });
 
     return this.findOne(versionId, user);
   }

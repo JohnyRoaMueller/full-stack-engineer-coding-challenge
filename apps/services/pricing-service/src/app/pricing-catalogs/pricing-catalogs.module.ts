@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Craftsman } from '../craftsmen/entities/craftsman.entity';
+import { CraftsmanTradeAssignment } from '../craftsmen/entities/craftsman-trade-assignment.entity';
 import { TradeConfig } from '../trades/entities/trade-config.entity';
 import { CatalogDiscount } from './entities/catalog-discount.entity';
 import { CatalogPosition } from './entities/catalog-position.entity';
@@ -18,6 +19,7 @@ import { PricingCatalogsService } from './pricing-catalogs.service';
       PositionSurcharge,
       CatalogDiscount,
       Craftsman,
+      CraftsmanTradeAssignment,
       TradeConfig,
     ]),
   ],
